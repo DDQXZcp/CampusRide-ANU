@@ -18,17 +18,17 @@ import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
+import { ScooterWebSocketProvider } from "./context/ScooterWebSocketProvider";
 
 export default function App() {
   return (
-    <>
+    <ScooterWebSocketProvider>
       <Router>
         <ScrollToTop />
         <Routes>
           {/* Dashboard Layout */}
           <Route element={<AppLayout />}>
-            {/* <Route index path="/" element={<Home />} /> */}
-            <Route index path="/" element={<Navigate to="/calendar" replace />} />
+            <Route index path="/" element={<Home />} />
 
             {/* Others Page */}
             <Route path="/profile" element={<UserProfiles />} />
@@ -62,6 +62,6 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
-    </>
+    </ScooterWebSocketProvider>
   );
 }

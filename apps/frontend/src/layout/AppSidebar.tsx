@@ -26,16 +26,17 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  // {
-  //   icon: <GridIcon />,
-  //   name: "Dashboard",
-  //   subItems: [{ name: "Ecommerce", path: "/", pro: false }],
-  // },
   {
-    icon: <CalenderIcon />,
-    name: "GradTrack Planner",
-    path: "/calendar",
+    icon: <GridIcon />,
+    name: "Campus Ride Dashboard",
+    path: "/"
+    //subItems: [{ name: "Ecommerce", path: "/", pro: false }],
   },
+  // {
+  //   icon: <CalenderIcon />,
+  //   name: "GradTrack Planner",
+  //   path: "/calendar",
+  // },
   {
     icon: <UserCircleIcon />,
     name: "User Profile",

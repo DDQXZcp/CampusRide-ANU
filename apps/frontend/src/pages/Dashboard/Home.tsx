@@ -14,7 +14,7 @@ export default function Home() {
         description="This is React.js Ecommerce Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
       />
       <div className="grid grid-cols-12 gap-4 md:gap-6">
-        <div className="col-span-12 space-y-6 xl:col-span-7">
+        {/* <div className="col-span-12 space-y-6 xl:col-span-7">
           <EcommerceMetrics />
 
           <MonthlySalesChart />
@@ -26,13 +26,13 @@ export default function Home() {
 
         <div className="col-span-12">
           <StatisticsChart />
-        </div>
+        </div> */}
 
-        <div className="col-span-12 xl:col-span-5">
+        <div className="col-span-12 xl:col-span-8 space-y-6">
           <DemographicCard />
         </div>
 
-        <div className="col-span-12 xl:col-span-7">
+        <div className="col-span-12 xl:col-span-4">
           <RecentOrders />
         </div>
       </div>

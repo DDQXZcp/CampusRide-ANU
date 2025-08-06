@@ -3,6 +3,7 @@ import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
 import CountryMap from "./CountryMap";
+import ANUCampusMap from "../maps/ANUCampusMap";
 
 export default function DemographicCard() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,10 +20,10 @@ export default function DemographicCard() {
       <div className="flex justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Customers Demographic
+            Scooter Operational Map
           </h3>
           <p className="mt-1 text-gray-500 text-theme-sm dark:text-gray-400">
-            Number of customer based on country
+            Scooter operational status across the ANU campus
           </p>
         </div>
         <div className="relative inline-block">
@@ -32,7 +33,7 @@ export default function DemographicCard() {
           <Dropdown
             isOpen={isOpen}
             onClose={closeDropdown}
-            className="w-40 p-2"
+            className="w-40 p-2 z-[1001]"
           >
             <DropdownItem
               onItemClick={closeDropdown}
@@ -49,62 +50,97 @@ export default function DemographicCard() {
           </Dropdown>
         </div>
       </div>
-      <div className="px-4 py-6 my-6 overflow-hidden border border-gary-200 rounded-2xl dark:border-gray-800 sm:px-6">
+      {/* <div className="px-4 py-6 my-6 overflow-hidden border border-gary-200 rounded-2xl dark:border-gray-800 sm:px-6">
         <div
           id="mapOne"
           className="mapOne map-btn -mx-4 -my-6 h-[212px] w-[252px] 2xsm:w-[307px] xsm:w-[358px] sm:-mx-6 md:w-[668px] lg:w-[634px] xl:w-[393px] 2xl:w-[554px]"
         >
           <CountryMap />
         </div>
+      </div> */}
+      {/* ANU Campus Map - replacing the commented CountryMap */}
+      <div className="my-6 overflow-hidden border border-gray-200 rounded-2xl dark:border-gray-800">
+        <div
+          id="mapOne"
+          className="mapOne map-btn h-[500px] w-full"
+        >
+          <ANUCampusMap />
+        </div>
       </div>
 
+      {/* Updated statistics for scooter status instead of countries */}
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="items-center w-full rounded-full max-w-8">
-              <img src="./images/country/country-01.svg" alt="usa" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
+              <div className="h-3 w-3 rounded-full bg-green-500"></div>
             </div>
             <div>
               <p className="font-semibold text-gray-800 text-theme-sm dark:text-white/90">
-                USA
+                Running Scooters
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                2,379 Customers
+                24 Available for rent
               </span>
             </div>
           </div>
 
           <div className="flex w-full max-w-[140px] items-center gap-3">
             <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-              <div className="absolute left-0 top-0 flex h-full w-[79%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+              <div className="absolute left-0 top-0 flex h-full w-[65%] items-center justify-center rounded-sm bg-green-500 text-xs font-medium text-white"></div>
             </div>
             <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-              79%
+              65%
             </p>
           </div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="items-center w-full rounded-full max-w-8">
-              <img src="./images/country/country-02.svg" alt="france" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/20">
+              <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
             </div>
             <div>
               <p className="font-semibold text-gray-800 text-theme-sm dark:text-white/90">
-                France
+                Locked Scooters
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                589 Customers
+                9 Currently in use
               </span>
             </div>
           </div>
 
           <div className="flex w-full max-w-[140px] items-center gap-3">
             <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-              <div className="absolute left-0 top-0 flex h-full w-[23%] items-center justify-center rounded-sm bg-brand-500 text-xs font-medium text-white"></div>
+              <div className="absolute left-0 top-0 flex h-full w-[25%] items-center justify-center rounded-sm bg-yellow-500 text-xs font-medium text-white"></div>
             </div>
             <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-              23%
+              25%
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+              <div className="h-3 w-3 rounded-full bg-red-500"></div>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-800 text-theme-sm dark:text-white/90">
+                Under Maintenance
+              </p>
+              <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                4 Being serviced
+              </span>
+            </div>
+          </div>
+
+          <div className="flex w-full max-w-[140px] items-center gap-3">
+            <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
+              <div className="absolute left-0 top-0 flex h-full w-[10%] items-center justify-center rounded-sm bg-red-500 text-xs font-medium text-white"></div>
+            </div>
+            <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
+              10%
             </p>
           </div>
         </div>
