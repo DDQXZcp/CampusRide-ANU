@@ -6,60 +6,18 @@ import {
   TableRow,
 } from "../ui/table";
 import Badge from "../ui/badge/Badge";
-
-// Define the TypeScript interface for the table rows
-interface Scooter {
-  id: number; // Unique identifier for each scooter
-  name: string; // Scooter name
-  speed: number; // Speed in kph
-  batteryLevel: number; // Battery percentage (0-100)
-  status: "Running" | "Locked" | "Maintenance"; // Status of the scooter
-  image: string; // URL or path to the scooter image
-}
-
-// Define the table data using the interface
-const tableData: Scooter[] = [
-  {
-    id: 1,
-    name: "Scooter 1",
-    speed: 25,
-    batteryLevel: 85,
-    status: "Running",
-    image: "/images/scooter/scooter-neuron-icon.jpg",
-  },
-  {
-    id: 2,
-    name: "Scooter 2",
-    speed: 20,
-    batteryLevel: 45,
-    status: "Locked",
-    image: "/images/scooter/scooter-neuron-icon.jpg",
-  },
-  {
-    id: 3,
-    name: "Scooter 3",
-    speed: 32,
-    batteryLevel: 92,
-    status: "Running",
-    image: "/images/scooter/scooter-neuron-icon.jpg",
-  },
-  {
-    id: 4,
-    name: "Scooter 4",
-    speed: 0,
-    batteryLevel: 15,
-    status: "Maintenance",
-    image: "/images/scooter/scooter-neuron-icon.jpg",
-  },
-];
+import { Scooter } from '../../types/Scooter';
+import { useScooterContext } from '../../context/ScooterWebSocketProvider';
 
 export default function RecentOrders() {
+  const { scooters } = useScooterContext();
+
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
       <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
+            Scooter
           </h3>
         </div>
 
@@ -114,25 +72,25 @@ export default function RecentOrders() {
             <TableRow>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 min-w-[130px]"
               >
                 Scooter
               </TableCell>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 min-w-[80px]"
               >
                 Speed
               </TableCell>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 min-w-[80px]"
               >
                 Battery
               </TableCell>
               <TableCell
                 isHeader
-                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400 min-w-[80px]"
               >
                 Status
               </TableCell>
@@ -142,13 +100,13 @@ export default function RecentOrders() {
           {/* Table Body */}
 
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((scooter) => (
+            {(scooters as Scooter[]).map((scooter) => (
               <TableRow key={scooter.id} className="">
                 <TableCell className="py-3">
                   <div className="flex items-center gap-3">
                     <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
                       <img
-                        src={scooter.image}
+                        src="/images/scooter/scooter-neuron-icon.jpg"
                         className="h-[50px] w-[50px]"
                         alt={scooter.name}
                       />
@@ -164,7 +122,7 @@ export default function RecentOrders() {
                   {scooter.speed} kph
                 </TableCell>
                 <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {scooter.batteryLevel}%
+                  {scooter.battery}%
                 </TableCell>
                 <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   <Badge

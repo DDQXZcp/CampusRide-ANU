@@ -4,9 +4,11 @@ import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { MoreDotIcon } from "../../icons";
 import CountryMap from "./CountryMap";
 import ANUCampusMap from "../maps/ANUCampusMap";
+import { useScooterContext } from "../../context/ScooterWebSocketProvider";
 
 export default function DemographicCard() {
   const [isOpen, setIsOpen] = useState(false);
+  const { scooters } = useScooterContext();
 
   function toggleDropdown() {
     setIsOpen(!isOpen);
@@ -15,6 +17,16 @@ export default function DemographicCard() {
   function closeDropdown() {
     setIsOpen(false);
   }
+
+  // Count scooter statuses
+  const total = scooters.length;
+  const runningCount = scooters.filter((s) => s.status === "Running").length;
+  const lockedCount = scooters.filter((s) => s.status === "Locked").length;
+  const maintenanceCount = scooters.filter((s) => s.status === "Maintenance").length;
+
+  const getPercent = (count: number) =>
+    total === 0 ? 0 : Math.round((count / total) * 100);
+
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
       <div className="flex justify-between">
@@ -50,26 +62,15 @@ export default function DemographicCard() {
           </Dropdown>
         </div>
       </div>
-      {/* <div className="px-4 py-6 my-6 overflow-hidden border border-gary-200 rounded-2xl dark:border-gray-800 sm:px-6">
-        <div
-          id="mapOne"
-          className="mapOne map-btn -mx-4 -my-6 h-[212px] w-[252px] 2xsm:w-[307px] xsm:w-[358px] sm:-mx-6 md:w-[668px] lg:w-[634px] xl:w-[393px] 2xl:w-[554px]"
-        >
-          <CountryMap />
-        </div>
-      </div> */}
-      {/* ANU Campus Map - replacing the commented CountryMap */}
+
       <div className="my-6 overflow-hidden border border-gray-200 rounded-2xl dark:border-gray-800">
-        <div
-          id="mapOne"
-          className="mapOne map-btn h-[500px] w-full"
-        >
+        <div id="mapOne" className="mapOne map-btn h-[500px] w-full">
           <ANUCampusMap />
         </div>
       </div>
 
-      {/* Updated statistics for scooter status instead of countries */}
       <div className="space-y-5">
+        {/* Running */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
@@ -80,21 +81,24 @@ export default function DemographicCard() {
                 Running Scooters
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                24 Available for rent
+                {runningCount} Available for rent
               </span>
             </div>
           </div>
-
           <div className="flex w-full max-w-[140px] items-center gap-3">
             <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-              <div className="absolute left-0 top-0 flex h-full w-[65%] items-center justify-center rounded-sm bg-green-500 text-xs font-medium text-white"></div>
+              <div
+                className="absolute left-0 top-0 flex h-full items-center justify-center rounded-sm bg-green-500 text-xs font-medium text-white"
+                style={{ width: `${getPercent(runningCount)}%` }}
+              ></div>
             </div>
             <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-              65%
+              {getPercent(runningCount)}%
             </p>
           </div>
         </div>
 
+        {/* Locked */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/20">
@@ -105,21 +109,24 @@ export default function DemographicCard() {
                 Locked Scooters
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                9 Currently in use
+                {lockedCount} Currently in use
               </span>
             </div>
           </div>
-
           <div className="flex w-full max-w-[140px] items-center gap-3">
             <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-              <div className="absolute left-0 top-0 flex h-full w-[25%] items-center justify-center rounded-sm bg-yellow-500 text-xs font-medium text-white"></div>
+              <div
+                className="absolute left-0 top-0 flex h-full items-center justify-center rounded-sm bg-yellow-500 text-xs font-medium text-white"
+                style={{ width: `${getPercent(lockedCount)}%` }}
+              ></div>
             </div>
             <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-              25%
+              {getPercent(lockedCount)}%
             </p>
           </div>
         </div>
 
+        {/* Maintenance */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
@@ -130,17 +137,19 @@ export default function DemographicCard() {
                 Under Maintenance
               </p>
               <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                4 Being serviced
+                {maintenanceCount} Being serviced
               </span>
             </div>
           </div>
-
           <div className="flex w-full max-w-[140px] items-center gap-3">
             <div className="relative block h-2 w-full max-w-[100px] rounded-sm bg-gray-200 dark:bg-gray-800">
-              <div className="absolute left-0 top-0 flex h-full w-[10%] items-center justify-center rounded-sm bg-red-500 text-xs font-medium text-white"></div>
+              <div
+                className="absolute left-0 top-0 flex h-full items-center justify-center rounded-sm bg-red-500 text-xs font-medium text-white"
+                style={{ width: `${getPercent(maintenanceCount)}%` }}
+              ></div>
             </div>
             <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-              10%
+              {getPercent(maintenanceCount)}%
             </p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useScooterContext } from '../../context/ScooterWebSocketProvider';
+import { Scooter } from '../../types/Scooter';
 
 // Fix for default markers in react-leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -13,26 +14,24 @@ L.Icon.Default.mergeOptions({
 });
 
 // ANU campus coordinates
-const ANU_CENTER: [number, number] = [-35.27757954101514, 149.1208912314757];
+const ANU_CENTER: [number, number] = [-35.276781489695345, 149.12011959981004];
 const ZOOM_LEVEL = 16;
 
-// Custom scooter icon
-const scooterIcon = new L.Icon({
-  iconUrl: '/images/scooter/scooter-neuron-icon.jpg',
-  iconSize: [40, 40],
-  iconAnchor: [20, 20],
-  popupAnchor: [0, -20],
-  className: 'rounded-full border-2 border-white shadow-lg'
-});
+function getScooterIcon(status: 'Running' | 'Locked' | 'Maintenance') {
+  let borderColor = '';
 
-// Define Scooter type
-type Scooter = {
-  id: number;
-  name: string;
-  status: 'Running' | 'Locked' | 'Maintenance';
-  lat: number;
-  lng: number;
-};
+  if (status === 'Running') borderColor = 'border-green-500';
+  else if (status === 'Locked') borderColor = 'border-yellow-500';
+  else if (status === 'Maintenance') borderColor = 'border-red-500';
+
+  return new L.Icon({
+    iconUrl: '/images/scooter/scooter-neuron-icon.jpg',
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+    popupAnchor: [0, -20],
+    className: `rounded-full border-2 ${borderColor} shadow-lg`
+  });
+}
 
 function RecenterButton() {
   const map = useMap();
@@ -64,7 +63,7 @@ export default function ANUCampusMap() {
           attribution="&copy; OpenStreetMap contributors"
         />
         {(scooters as Scooter[]).map((scooter) => (
-          <Marker key={scooter.id} position={[scooter.lat, scooter.lng]} icon={scooterIcon}>
+          <Marker key={scooter.id} position={[scooter.lat, scooter.lng]} icon={getScooterIcon(scooter.status)}>
             <Popup>
               <div className="text-sm">
                 <strong>{scooter.name}</strong>

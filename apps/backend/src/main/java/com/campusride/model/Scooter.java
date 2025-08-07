@@ -7,6 +7,7 @@ public class Scooter {
     private double lng;
     private String status;
     private int battery;
+    private int speed;
 
     // Getters and setters
     public int getId() { return id; }
@@ -26,4 +27,7 @@ public class Scooter {
 
     public int getBattery() { return battery; }
     public void setBattery(int battery) { this.battery = battery; }
+
+    public int getSpeed() { return speed; }
+    public void setSpeed(int speed) { this.speed = speed; }
 }

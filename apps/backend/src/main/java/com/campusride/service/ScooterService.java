@@ -20,6 +20,17 @@ public class ScooterService {
 
     private final List<Scooter> scooters = new ArrayList<>();
     private final Map<String, Object> stats = new HashMap<>();
+    private final Map<Integer, Movement> movingScooters = new HashMap<>();
+
+    // Helper class to track back-and-forth movement
+    private static class Movement {
+        double startLat;
+        double startLng;
+        double endLat;
+        double endLng;
+        boolean forward = true;
+        double progress = 0.0;
+    }
 
     public ScooterService() {
         initializeScooters();
@@ -28,30 +39,52 @@ public class ScooterService {
 
     private void initializeScooters() {
         String[][] anuLocations = {
-                {"Marie Reay Teaching Centre", "-35.27757954101514", "149.1208912314757"},
-                {"Near Union Court", "-35.2780", "149.1205"},
-                {"Student Plaza", "-35.2770", "149.1215"},
-                {"Library Entrance", "-35.2785", "149.1200"},
-                {"Engineering Precinct", "-35.2772", "149.1220"}
+            {"Marie Reay Teaching Centre", "-35.27757954101514", "149.1208912314757"},
+            {"Near Union Court", "-35.2780", "149.1205"},
+            {"Student Plaza", "-35.2770", "149.1215"},
+            {"Library Entrance", "-35.2785", "149.1200"},
+            {"Engineering Precinct", "-35.2772", "149.1220"}
         };
 
         for (int i = 0; i < anuLocations.length; i++) {
             Scooter scooter = new Scooter();
             scooter.setId(i + 1);
-            scooter.setName(anuLocations[i][0]);
-            double lat = Double.parseDouble(anuLocations[i][1]);
-            double lng = Double.parseDouble(anuLocations[i][2]);
-            scooter.setLat(lat);
-            scooter.setLng(lng);
-            scooter.setBattery(ThreadLocalRandom.current().nextInt(40, 100));
-            scooter.setStatus(getRandomStatus());
+            scooter.setName("Scooter " + (i + 1));
+            scooter.setLat(Double.parseDouble(anuLocations[i][1]));
+            scooter.setLng(Double.parseDouble(anuLocations[i][2]));
+
+            if (i < 3) {
+                scooter.setStatus("Running");
+                scooter.setSpeed(ThreadLocalRandom.current().nextInt(10, 26)); // 10–25 kph
+                if (i == 0) scooter.setBattery(ThreadLocalRandom.current().nextInt(70, 81));
+                if (i == 1) scooter.setBattery(ThreadLocalRandom.current().nextInt(50, 61));
+                if (i == 2) scooter.setBattery(ThreadLocalRandom.current().nextInt(30, 41));
+            } else if (i == 3) {
+                scooter.setStatus("Locked");
+                scooter.setSpeed(0);
+                scooter.setBattery(56);
+            } else {
+                scooter.setStatus("Maintenance");
+                scooter.setSpeed(0);
+                scooter.setBattery(3);
+            }
+
             scooters.add(scooter);
         }
+
+        // Define paths for the first 3 running scooters
+        movingScooters.put(1, createMovement(-35.27696367673257, 149.1198959596581, -35.2755447551961, 149.12112441125177));
+        movingScooters.put(2, createMovement(-35.27898691078083, 149.12384417107916, -35.27678850261695, 149.12019636722022));
+        movingScooters.put(3, createMovement(-35.27363530300725, 149.1179594045741, -35.2769592973909, 149.11506261907763));
     }
 
-    private String getRandomStatus() {
-        String[] statuses = {"Running", "Locked", "Maintenance"};
-        return statuses[ThreadLocalRandom.current().nextInt(statuses.length)];
+    private Movement createMovement(double lat1, double lng1, double lat2, double lng2) {
+        Movement m = new Movement();
+        m.startLat = lat1;
+        m.startLng = lng1;
+        m.endLat = lat2;
+        m.endLng = lng2;
+        return m;
     }
 
     private void updateStats() {
@@ -67,32 +100,47 @@ public class ScooterService {
         stats.put("timestamp", new Date());
     }
 
-    @Scheduled(fixedRate = 5000)
+    @Scheduled(fixedRate = 1000)
     public void broadcastUpdates() {
         simulateUpdates();
         updateStats();
         messagingTemplate.convertAndSend("/topic/scooter-locations", scooters);
         messagingTemplate.convertAndSend("/topic/scooter-stats", stats);
-        System.out.println("Broadcasting scooters: " + scooters);
     }
 
     private void simulateUpdates() {
         for (Scooter scooter : scooters) {
-            // Update battery
-            int battery = scooter.getBattery();
-            int delta = ThreadLocalRandom.current().nextInt(-3, 2);
-            scooter.setBattery(Math.max(0, Math.min(100, battery + delta)));
 
-            // Occasionally change status
-            if (ThreadLocalRandom.current().nextDouble() < 0.2) {
-                scooter.setStatus(getRandomStatus());
+            // Update battery within original range
+            if (scooter.getId() == 1) scooter.setBattery(ThreadLocalRandom.current().nextInt(70, 81));
+            if (scooter.getId() == 2) scooter.setBattery(ThreadLocalRandom.current().nextInt(50, 61));
+            if (scooter.getId() == 3) scooter.setBattery(ThreadLocalRandom.current().nextInt(30, 41));
+
+            // Update speed and move only if running
+            if ("Running".equals(scooter.getStatus())) {
+                scooter.setSpeed(ThreadLocalRandom.current().nextInt(10, 26)); // 10–25 kph
+
+                Movement m = movingScooters.get(scooter.getId());
+                if (m != null) {
+                    // Move progress
+                    m.progress += m.forward ? 0.01 : -0.01;
+
+                    if (m.progress >= 1.0) {
+                        m.progress = 1.0;
+                        m.forward = false;
+                    } else if (m.progress <= 0.0) {
+                        m.progress = 0.0;
+                        m.forward = true;
+                    }
+
+                    double newLat = m.startLat + (m.endLat - m.startLat) * m.progress;
+                    double newLng = m.startLng + (m.endLng - m.startLng) * m.progress;
+                    scooter.setLat(newLat);
+                    scooter.setLng(newLng);
+                }
+            } else {
+                scooter.setSpeed(0); // Locked or Maintenance scooters don't move
             }
-
-            // Move slightly
-            double latOffset = (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.0005;
-            double lngOffset = (ThreadLocalRandom.current().nextDouble() - 0.5) * 0.0005;
-            scooter.setLat(scooter.getLat() + latOffset);
-            scooter.setLng(scooter.getLng() + lngOffset);
         }
     }
 
