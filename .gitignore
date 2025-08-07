@@ -51,6 +51,14 @@ Thumbs.db
 *.suo
 *.userosscache
 *.sln.docstates
+*.crt
+*.env
+
+# ===============================
+# Backend - Spring Boot
+# ===============================
+
+apps/backend/target/
 
 # ASP.NET Secrets (if any)
 secrets.json

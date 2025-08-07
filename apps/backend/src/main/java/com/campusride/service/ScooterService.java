@@ -100,7 +100,7 @@ public class ScooterService {
         stats.put("timestamp", new Date());
     }
 
-    @Scheduled(fixedRate = 1000)
+    @Scheduled(fixedRate = 2000)
     public void broadcastUpdates() {
         simulateUpdates();
         updateStats();
