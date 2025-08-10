@@ -66,11 +66,12 @@ jobs:
           chmod 644 /home/ec2-user/emqxsl-ca.crt
         EOF
 
+    # Use shell variable expansion outside EOF to avoid issues with GitHub Actions
     - name: Restart backend service on EC2 with env vars
       run: |
+        MQTT_USERNAME="${{ secrets.MQTT_USERNAME }}"
+        MQTT_PASSWORD="${{ secrets.MQTT_PASSWORD }}"
         ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
-          # Stop existing service if any
           sudo pkill -f "${{ env.JAR_NAME }}" || true
-          # Run the jar with MQTT env vars and CA cert path
-          nohup env MQTT_USERNAME="${{ secrets.MQTT_USERNAME }}" MQTT_PASSWORD="${{ secrets.MQTT_PASSWORD }}" java -jar ${{ env.REMOTE_DIR }}/${{ env.JAR_NAME }} > /dev/null 2>&1 &
-        EOF
+          nohup env MQTT_USERNAME="$MQTT_USERNAME" MQTT_PASSWORD="$MQTT_PASSWORD" java -jar ${{ env.REMOTE_DIR }}/${{ env.JAR_NAME }} > /home/ec2-user/backend.log 2>&1 &
+    EOF
