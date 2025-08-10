@@ -28,11 +28,13 @@ export const useWebSocketScooters = () => {
   const [error, setError] = useState<string | null>(null);
   const stompClient = useRef<Client | null>(null);
 
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+
   useEffect(() => {
     const connect = () => {
       try {
         stompClient.current = new Client({
-          webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+          webSocketFactory: () => new SockJS(`${backendUrl}/ws`),
           connectHeaders: {},
           debug: (str) => {
             console.log('STOMP: ' + str);

@@ -1,11 +1,16 @@
 package com.campusride.service;
 
 import com.campusride.model.Scooter;
+import com.campusride.utils.SSLUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import io.github.cdimascio.dotenv.Dotenv;
+import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Logger;
@@ -19,72 +24,91 @@ public class ScooterService {
     private SimpMessagingTemplate messagingTemplate;
 
     private final List<Scooter> scooters = new ArrayList<>();
+    private final Map<Integer, Long> scooterLastUpdMap = new HashMap<>();
     private final Map<String, Object> stats = new HashMap<>();
-    private final Map<Integer, Movement> movingScooters = new HashMap<>();
+    private final Gson gson = new Gson();
 
-    // Helper class to track back-and-forth movement
-    private static class Movement {
-        double startLat;
-        double startLng;
-        double endLat;
-        double endLng;
-        boolean forward = true;
-        double progress = 0.0;
-    }
+    private static final long EXPIRY_MILLIS = 20_000L; // 20 seconds
 
     public ScooterService() {
-        initializeScooters();
-        updateStats();
+        initializeMQTT();
     }
 
-    private void initializeScooters() {
-        String[][] anuLocations = {
-            {"Marie Reay Teaching Centre", "-35.27757954101514", "149.1208912314757"},
-            {"Near Union Court", "-35.2780", "149.1205"},
-            {"Student Plaza", "-35.2770", "149.1215"},
-            {"Library Entrance", "-35.2785", "149.1200"},
-            {"Engineering Precinct", "-35.2772", "149.1220"}
-        };
+    private void initializeMQTT() {
+        try {
+            Dotenv dotenv = Dotenv.configure()
+                    .directory("src/main/resources")
+                    .filename("backend-mqtt.env")
+                    .load();
 
-        for (int i = 0; i < anuLocations.length; i++) {
-            Scooter scooter = new Scooter();
-            scooter.setId(i + 1);
-            scooter.setName("Scooter " + (i + 1));
-            scooter.setLat(Double.parseDouble(anuLocations[i][1]));
-            scooter.setLng(Double.parseDouble(anuLocations[i][2]));
+            String broker = "ssl://m178f7c2.ala.asia-southeast1.emqxsl.com:8883";
+            String username = dotenv.get("MQTT_USERNAME");
+            String password = dotenv.get("MQTT_PASSWORD");
 
-            if (i < 3) {
-                scooter.setStatus("Running");
-                scooter.setSpeed(ThreadLocalRandom.current().nextInt(10, 26)); // 10–25 kph
-                if (i == 0) scooter.setBattery(ThreadLocalRandom.current().nextInt(70, 81));
-                if (i == 1) scooter.setBattery(ThreadLocalRandom.current().nextInt(50, 61));
-                if (i == 2) scooter.setBattery(ThreadLocalRandom.current().nextInt(30, 41));
-            } else if (i == 3) {
-                scooter.setStatus("Locked");
-                scooter.setSpeed(0);
-                scooter.setBattery(56);
-            } else {
-                scooter.setStatus("Maintenance");
-                scooter.setSpeed(0);
-                scooter.setBattery(3);
+            MqttClient mqttClient = new MqttClient(broker, "backend");
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setUserName(username);
+            options.setPassword(password.toCharArray());
+            options.setSocketFactory(SSLUtils.getSocketFactory("src/main/resources/emqxsl-ca.crt"));
+
+            mqttClient.connect(options);
+            mqttClient.subscribe("scooter/data", (topic, message) -> {
+                String payload = new String(message.getPayload());
+                logger.info("Received from MQTT: " + payload);
+
+                List<Scooter> updatedScooters = gson.fromJson(payload, new TypeToken<List<Scooter>>() {}.getType());
+                synchronized (scooters) {
+                    for (Scooter incomingScooter : updatedScooters){
+                        Optional<Scooter> existingScooter = scooters.stream()
+                                .filter(s -> s.getId() == incomingScooter.getId())
+                                .findFirst();
+
+                        if (existingScooter.isPresent()) {
+                            Scooter scooter = existingScooter.get();
+                            scooter.setLat(incomingScooter.getLat());
+                            scooter.setLng(incomingScooter.getLng());
+                            scooter.setStatus(incomingScooter.getStatus());
+                            scooter.setBattery(incomingScooter.getBattery());
+                            scooter.setSpeed(incomingScooter.getSpeed());
+                        } else {
+                            scooters.add(incomingScooter);
+                        }
+                        // Update last update time
+                        scooterLastUpdMap.put(incomingScooter.getId(), System.currentTimeMillis());
+                    }
+                }
+
+                updateStats();
+                messagingTemplate.convertAndSend("/topic/scooter-locations", getScootersSortedByStatus());
+                messagingTemplate.convertAndSend("/topic/scooter-stats", stats);
+            });
+        } catch (Exception e) {
+            logger.severe("MQTT connection failed: " + e.getMessage());
+        }
+    }
+
+    // Sort scooters by status and filter out expired ones
+    private List<Scooter> getScootersSortedByStatus() {
+        long currentTime = System.currentTimeMillis();
+        synchronized (scooters) {
+            List<Scooter> validScooters = new ArrayList<>();
+            for (Scooter s : scooters) {
+                Long lastUpdate = scooterLastUpdMap.get(s.getId());
+                if (lastUpdate != null && (currentTime - lastUpdate) < EXPIRY_MILLIS) {
+                    validScooters.add(s);
+                }
             }
 
-            scooters.add(scooter);
+            validScooters.sort(Comparator.comparingInt(s -> {
+                switch (s.getStatus()) {
+                    case "Running": return 0;
+                    case "Locked": return 1;
+                    case "Maintenance": return 2;
+                    default: return 3; // Unknown status
+                }
+            }));
+            return validScooters;
         }
-
-        // Define paths for the first 3 running scooters
-        movingScooters.put(1, createMovement(-35.27696367673257, 149.1198959596581, -35.2755447551961, 149.12112441125177));
-        movingScooters.put(2, createMovement(-35.27898691078083, 149.12384417107916, -35.27678850261695, 149.12019636722022));
-        movingScooters.put(3, createMovement(-35.27363530300725, 149.1179594045741, -35.2769592973909, 149.11506261907763));
-    }
-
-    private Movement createMovement(double lat1, double lng1, double lat2, double lng2) {
-        Movement m = new Movement();
-        m.startLat = lat1;
-        m.startLng = lng1;
-        m.endLat = lat2;
-        m.endLng = lng2;
-        return m;
     }
 
     private void updateStats() {
@@ -98,50 +122,6 @@ public class ScooterService {
         stats.put("maintenance", maintenance);
         stats.put("total", total);
         stats.put("timestamp", new Date());
-    }
-
-    @Scheduled(fixedRate = 2000)
-    public void broadcastUpdates() {
-        simulateUpdates();
-        updateStats();
-        messagingTemplate.convertAndSend("/topic/scooter-locations", scooters);
-        messagingTemplate.convertAndSend("/topic/scooter-stats", stats);
-    }
-
-    private void simulateUpdates() {
-        for (Scooter scooter : scooters) {
-
-            // Update battery within original range
-            if (scooter.getId() == 1) scooter.setBattery(ThreadLocalRandom.current().nextInt(70, 81));
-            if (scooter.getId() == 2) scooter.setBattery(ThreadLocalRandom.current().nextInt(50, 61));
-            if (scooter.getId() == 3) scooter.setBattery(ThreadLocalRandom.current().nextInt(30, 41));
-
-            // Update speed and move only if running
-            if ("Running".equals(scooter.getStatus())) {
-                scooter.setSpeed(ThreadLocalRandom.current().nextInt(10, 26)); // 10–25 kph
-
-                Movement m = movingScooters.get(scooter.getId());
-                if (m != null) {
-                    // Move progress
-                    m.progress += m.forward ? 0.01 : -0.01;
-
-                    if (m.progress >= 1.0) {
-                        m.progress = 1.0;
-                        m.forward = false;
-                    } else if (m.progress <= 0.0) {
-                        m.progress = 0.0;
-                        m.forward = true;
-                    }
-
-                    double newLat = m.startLat + (m.endLat - m.startLat) * m.progress;
-                    double newLng = m.startLng + (m.endLng - m.startLng) * m.progress;
-                    scooter.setLat(newLat);
-                    scooter.setLng(newLng);
-                }
-            } else {
-                scooter.setSpeed(0); // Locked or Maintenance scooters don't move
-            }
-        }
     }
 
     public List<Scooter> getAllScooters() {
