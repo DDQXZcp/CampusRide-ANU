@@ -36,14 +36,14 @@ public class ScooterService {
 
     private void initializeMQTT() {
         try {
-            Dotenv dotenv = Dotenv.configure()
-                    .directory("src/main/resources")
-                    .filename("backend-mqtt.env")
-                    .load();
-
+            // Load MQTT credentials from environment variables instead of local .env file
             String broker = "ssl://m178f7c2.ala.asia-southeast1.emqxsl.com:8883";
-            String username = dotenv.get("MQTT_USERNAME");
-            String password = dotenv.get("MQTT_PASSWORD");
+            String username = System.getenv("MQTT_USERNAME");
+            String password = System.getenv("MQTT_PASSWORD");
+
+            if (username == null || password == null) {
+                throw new RuntimeException("MQTT_USERNAME or MQTT_PASSWORD environment variables are not set.");
+            }
 
             MqttClient mqttClient = new MqttClient(broker, "backend");
             MqttConnectOptions options = new MqttConnectOptions();
