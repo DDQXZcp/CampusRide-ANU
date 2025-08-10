@@ -15,7 +15,7 @@ env:
   EC2_HOST: 52.63.53.185
   EC2_USER: ec2-user
   EC2_SSH_KEY_SECRET: EC2_SSH_KEY
-  JAR_NAME: backend-app.jar
+  JAR_NAME: campusride-backend-1.0.0.jar # Defined in pom.xml
   REMOTE_DIR: /home/ec2-user/app
   SERVICE_NAME: backend
 
