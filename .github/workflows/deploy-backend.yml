@@ -59,14 +59,13 @@ jobs:
 
     # For better security, now only scp the certificate directly from my device
 
-    # Use shell variable expansion outside EOF to avoid issues with GitHub Actions
-    - name: Restart backend service on EC2 with env vars
+    # Now use a script to set up the backend service
+    - name: Copy setup script to EC2
       run: |
-        MQTT_USERNAME="${{ secrets.MQTT_USERNAME }}"
-        MQTT_PASSWORD="${{ secrets.MQTT_PASSWORD }}"
-        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
-          sudo pkill -f "${{ env.JAR_NAME }}" || true
-          cd ${{ env.REMOTE_DIR }}
-          nohup bash -c 'export MQTT_USERNAME="$MQTT_USERNAME" MQTT_PASSWORD="$MQTT_PASSWORD"; java -jar ${{ env.JAR_NAME }}' > /home/ec2-user/backend.log 2>&1 &
-        EOF
+        scp -o StrictHostKeyChecking=no -i key.pem .github/scripts/setup-backend-service.sh ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/home/ec2-user/
+
+    - name: Run setup script on EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash /home/ec2-user/setup-backend-service.sh '${{ secrets.MQTT_USERNAME }}' '${{ secrets.MQTT_PASSWORD }}'"
+
 
