@@ -74,4 +74,4 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
           sudo pkill -f "${{ env.JAR_NAME }}" || true
           nohup env MQTT_USERNAME="$MQTT_USERNAME" MQTT_PASSWORD="$MQTT_PASSWORD" java -jar ${{ env.REMOTE_DIR }}/${{ env.JAR_NAME }} > /home/ec2-user/backend.log 2>&1 &
-    EOF
+        EOF
