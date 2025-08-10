@@ -49,7 +49,7 @@ public class ScooterService {
             MqttConnectOptions options = new MqttConnectOptions();
             options.setUserName(username);
             options.setPassword(password.toCharArray());
-            options.setSocketFactory(SSLUtils.getSocketFactory("src/main/resources/emqxsl-ca.crt"));
+            options.setSocketFactory(SSLUtils.getSocketFactory("/home/ec2-user/emqxsl-ca.crt"));
 
             mqttClient.connect(options);
             mqttClient.subscribe("scooter/data", (topic, message) -> {

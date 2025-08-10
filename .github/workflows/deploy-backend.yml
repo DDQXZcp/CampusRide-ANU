@@ -1,0 +1,66 @@
+name: Build and Deploy Backend (Maven → EC2)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  EC2_HOST: 52.63.53.185
+  EC2_USER: ec2-user
+  EC2_SSH_KEY_SECRET: EC2_SSH_KEY
+  JAR_NAME: backend-app.jar
+  REMOTE_DIR: /home/ec2-user/app
+  SERVICE_NAME: backend
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: 17
+
+    - name: Build with Maven
+      working-directory: apps/backend
+      run: mvn clean package -DskipTests
+
+    - name: Prepare SSH key
+      id: ssh-key
+      run: |
+        echo "${{ secrets[env.EC2_SSH_KEY_SECRET] }}" > key.pem
+        chmod 600 key.pem
+
+    - name: Copy JAR to EC2
+      run: |
+        scp -o StrictHostKeyChecking=no -i key.pem apps/backend/target/${{ env.JAR_NAME }} ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
+
+    - name: Write EMQX CA cert file on EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
+          cat > /home/ec2-user/emqxsl-ca.crt << CERT_EOF
+          ${{ secrets.EMQX_CA_CRT }}
+          CERT_EOF
+          chmod 644 /home/ec2-user/emqxsl-ca.crt
+        EOF
+
+    - name: Restart backend service on EC2 with env vars
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
+          # Stop existing service if any
+          sudo pkill -f "${{ env.JAR_NAME }}" || true
+          # Run the jar with MQTT env vars and CA cert path
+          nohup env MQTT_USERNAME="${{ secrets.MQTT_USERNAME }}" MQTT_PASSWORD="${{ secrets.MQTT_PASSWORD }}" java -jar ${{ env.REMOTE_DIR }}/${{ env.JAR_NAME }} > /dev/null 2>&1 &
+        EOF
