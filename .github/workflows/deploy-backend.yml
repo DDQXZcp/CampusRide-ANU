@@ -57,16 +57,7 @@ jobs:
       run: |
         scp -o StrictHostKeyChecking=no -i key.pem "${{ steps.find-jar.outputs.jar }}" ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
 
-    - name: Write EMQX CA cert file on EC2
-      env:
-        EMQX_CA_CRT: ${{ secrets.EMQX_CA_CRT }}
-      run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
-        cat > /home/ec2-user/emqxsl-ca.crt << 'CERT_EOF'
-        $EMQX_CA_CRT
-        CERT_EOF
-        chmod 644 /home/ec2-user/emqxsl-ca.crt
-        EOF
+    # For better security, now only scp the certificate directly from my device
 
     # Use shell variable expansion outside EOF to avoid issues with GitHub Actions
     - name: Restart backend service on EC2 with env vars
