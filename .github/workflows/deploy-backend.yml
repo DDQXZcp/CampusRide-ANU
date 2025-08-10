@@ -37,6 +37,16 @@ jobs:
       working-directory: apps/backend
       run: mvn clean package -DskipTests
 
+    - name: Find built JAR file
+      id: find-jar
+      run: |
+        JAR_FILE=$(find apps/backend/target -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' ! -name '*-javadoc.jar' | head -n 1)
+        if [ -z "$JAR_FILE" ]; then
+          echo "No JAR file found in target directory!"
+          exit 1
+        fi
+        echo "jar=$JAR_FILE" >> $GITHUB_OUTPUT
+
     - name: Prepare SSH key
       id: ssh-key
       run: |
@@ -45,7 +55,7 @@ jobs:
 
     - name: Copy JAR to EC2
       run: |
-        scp -o StrictHostKeyChecking=no -i key.pem apps/backend/target/${{ env.JAR_NAME }} ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
+        scp -o StrictHostKeyChecking=no -i key.pem "${{ steps.find-jar.outputs.jar }}" ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
 
     - name: Write EMQX CA cert file on EC2
       run: |
