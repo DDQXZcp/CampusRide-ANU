@@ -1,3 +1,8 @@
+#!/bin/bash
+
+SERVICE_FILE="/etc/systemd/system/escooter.service"
+
+sudo tee $SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=Escooter Python Service
 After=network.target
@@ -10,3 +15,8 @@ Restart=always
 
 [Install]
 WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable escooter.service
+sudo systemctl restart escooter.service
