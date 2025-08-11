@@ -57,6 +57,11 @@ jobs:
       run: |
         scp -o StrictHostKeyChecking=no -i key.pem "${{ steps.find-jar.outputs.jar }}" ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
 
+    # Copy Python app files
+    - name: Copy Python app to EC2
+      run: |
+        scp -o StrictHostKeyChecking=no -i key.pem apps/things/escooter-ec2.py ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:${{ env.REMOTE_DIR }}/
+
     # For better security, now only scp the certificate directly from my device
 
     # Now use a script to set up the backend service
@@ -64,8 +69,16 @@ jobs:
       run: |
         scp -o StrictHostKeyChecking=no -i key.pem .github/scripts/setup-backend-service.sh ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/home/ec2-user/
 
+    # Copy escooter setup script to EC2
+    - name: Copy escooter setup script to EC2
+      run: |
+        scp -o StrictHostKeyChecking=no -i key.pem .github/scripts/setup-escooter-service.sh ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/home/ec2-user/
+
     - name: Run setup script on EC2
       run: |
         ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash /home/ec2-user/setup-backend-service.sh '${{ secrets.MQTT_USERNAME }}' '${{ secrets.MQTT_PASSWORD }}'"
 
-
+    # Run escooter setup script
+    - name: Run escooter setup script on EC2
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash /home/ec2-user/setup-escooter-service.sh"
