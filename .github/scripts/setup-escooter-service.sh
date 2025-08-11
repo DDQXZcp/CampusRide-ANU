@@ -1,5 +1,8 @@
 #!/bin/bash
 
+MQTT_USERNAME="$1"
+MQTT_PASSWORD="$2"
+
 SERVICE_FILE="/etc/systemd/system/escooter.service"
 
 sudo tee $SERVICE_FILE > /dev/null <<EOF
@@ -10,6 +13,8 @@ After=network.target
 [Service]
 User=ec2-user
 WorkingDirectory=/home/ec2-user/app
+Environment=MQTT_USERNAME=$MQTT_USERNAME
+Environment=MQTT_PASSWORD=$MQTT_PASSWORD
 ExecStart=/usr/bin/python3 /home/ec2-user/app/escooter-ec2.py
 Restart=always
 

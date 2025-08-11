@@ -5,9 +5,6 @@ import os
 from dotenv import load_dotenv
 import paho.mqtt.client as mqtt
 
-# Load credentials
-dotenv_path = os.path.join(os.path.dirname(__file__), "escooter-mqtt.env")
-load_dotenv(dotenv_path)
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 

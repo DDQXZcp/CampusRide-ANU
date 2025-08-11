@@ -81,4 +81,4 @@ jobs:
     # Run escooter setup script
     - name: Run escooter setup script on EC2
       run: |
-        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash /home/ec2-user/setup-escooter-service.sh"
+        ssh -o StrictHostKeyChecking=no -i key.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "bash /home/ec2-user/setup-escooter-service.sh '${{ secrets.MQTT_USERNAME }}' '${{ secrets.MQTT_PASSWORD }}'"
