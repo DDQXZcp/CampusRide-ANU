@@ -42,7 +42,7 @@ Resources:
         Fn::Base64: |
           #!/bin/bash
           dnf update -y
-          dnf install -y java-17-amazon-corretto-devel python3
+          dnf install -y java-17-amazon-corretto-devel python3 python3-pip
           python3 -m pip install --upgrade pip
           pip3 install paho-mqtt
           mkdir -p /home/ec2-user/app
