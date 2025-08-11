@@ -15,7 +15,7 @@ MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 BROKER = "m178f7c2.ala.asia-southeast1.emqxsl.com"
 PORT = 8883
 TOPIC = "scooter/data"
-CA_CERT = os.path.join(os.path.dirname(__file__), "emqxsl-ca.crt")
+CA_CERT = os.path.join(os.path.dirname(__file__), "/home/ec2-user/emqxsl-ca.crt")
 
 client = mqtt.Client()
 client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
