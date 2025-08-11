@@ -49,12 +49,12 @@ scooters = [
 # Simulate movement
 def move_scooter(s):
     if s["forward"]:
-        s["progress"] += 0.01
+        s["progress"] += 0.02
         if s["progress"] >= 1.0:
             s["progress"] = 1.0
             s["forward"] = False
     else:
-        s["progress"] -= 0.01
+        s["progress"] -= 0.02
         if s["progress"] <= 0.0:
             s["progress"] = 0.0
             s["forward"] = True
