@@ -31,11 +31,11 @@ scooters = [
         "start": [-35.2789, 149.1238], "end": [-35.2767, 149.1201],
         "battery_range": (50, 60), "progress": 0.0, "forward": True
     },
-    # {
-    #     "id": 3, "name": "Scooter 3", "status": "Running",
-    #     "start": [-35.2736, 149.1179], "end": [-35.2769, 149.1150],
-    #     "battery_range": (30, 40), "progress": 0.0, "forward": True
-    # },
+    {
+        "id": 3, "name": "Scooter 3", "status": "Running",
+        "start": [-35.2736, 149.1179], "end": [-35.2769, 149.1150],
+        "battery_range": (30, 40), "progress": 0.0, "forward": True
+    },
     {
         "id": 4, "name": "Scooter 4", "status": "Locked",
         "lat": -35.2785, "lng": 149.1200, "battery": 56
@@ -49,12 +49,12 @@ scooters = [
 # Simulate movement
 def move_scooter(s):
     if s["forward"]:
-        s["progress"] += 0.02
+        s["progress"] += 0.01
         if s["progress"] >= 1.0:
             s["progress"] = 1.0
             s["forward"] = False
     else:
-        s["progress"] -= 0.02
+        s["progress"] -= 0.01
         if s["progress"] <= 0.0:
             s["progress"] = 0.0
             s["forward"] = True
