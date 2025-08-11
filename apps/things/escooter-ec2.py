@@ -2,7 +2,6 @@ import time
 import json
 import random
 import os
-from dotenv import load_dotenv
 import paho.mqtt.client as mqtt
 
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
