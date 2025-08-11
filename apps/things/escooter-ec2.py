@@ -4,6 +4,7 @@ import random
 import os
 import paho.mqtt.client as mqtt
 
+# Remove dotenv
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
