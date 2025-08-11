@@ -8,8 +8,8 @@ import paho.mqtt.client as mqtt
 MQTT_USERNAME = os.getenv("MQTT_USERNAME")
 MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
 
-if not MQTT_USERNAME or not MQTT_PASSWORD:
-    raise RuntimeError("Missing MQTT credentials in environment variables")
+# if not MQTT_USERNAME or not MQTT_PASSWORD:
+#     raise RuntimeError("Missing MQTT credentials in environment variables")
 
 # MQTT setup (TLS)
 BROKER = "m178f7c2.ala.asia-southeast1.emqxsl.com"
