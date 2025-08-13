@@ -9,7 +9,8 @@ const LayoutContent: React.FC = () => {
 
   return (
     <div className="min-h-screen xl:flex">
-      <div>
+      {/* Increase the z-index of Sidebar so it won't be blocked */}
+      <div className="fixed z-[2000]">
         <AppSidebar />
         <Backdrop />
       </div>
