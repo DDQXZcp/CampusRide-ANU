@@ -4,7 +4,7 @@
 
 CampusRide is an IoT Dashboard for real-time visualization of scooter management. It 
 
-![Architecture](./apps/frontend/public/images/CampusRide-IoT-Dashboard-Architecture.svg)
+![Architecture](./apps/frontend/public/images/CampusRide-Architecture.png)
 
 ## Overview
 
