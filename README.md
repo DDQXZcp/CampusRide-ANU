@@ -1,144 +1,150 @@
-# ANU Graduation Requirement Checker Dashboard
+# CampusRide IoT Real-Time Visualization Dashboard
 
 [CampusRide Website](https://campusride.herman-tang.com)
 
-CampusRide is an IoT Dashboard for real-time visualization of scooter management. It 
+CampusRide is an IoT dashboard for real-time visualization of scooter operations. It retrieves scooter status — including location, speed, and battery level — and sends the data via a public MQTT broker to the Spring Boot backend. The frontend communicates with the backend over WebSocket, allowing the backend to push the latest data to the frontend and update the UI instantly.
 
 ![Architecture](./apps/frontend/public/images/CampusRide-Architecture.png)
 
 ## Overview
 
-GradTrack provides essential UI components and layouts for building feature-rich, data-driven admin dashboards and
-control panels. It's built on:
+CampusRide delivers a fully functional dashboard for monitoring scooter status in real time. It is built on:
 
-Frontend
+**Frontend**
 - React 19
 - TypeScript
 - Tailwind CSS
-- S3 + Cloudfront (with ACM Certificates)
+- S3 + CloudFront (with ACM certificates)
 
-Backend
+**Backend**
 - Spring Boot
-- Nginx Reverse Proxy
+- Nginx reverse proxy
 - EMQX Cloud
 - AWS EC2
 
-MQTT Broker
+**MQTT Broker**
 - EMQX Cloud
 
-End Device
-- Raspberry Pi + GPS Module + Speed Encoder
+**End Device**
+- Raspberry Pi + GPS module + speed encoder
 
-![Semester Planner Frontend](./apps/frontend/public/images/CampusRide-Frontend.png)
+![CampusRide Frontend](./apps/frontend/public/images/CampusRide-Frontend.png)
 
 ## Local Installation
 
 ### Prerequisites
 
-To get started with frontend, ensure you have the following prerequisites installed and set up:
-
+Ensure the following are installed and set up:
 - JDK 17
 - Maven
 
-1. Start the Backend Server:
+**Start the Backend Server**
+```bash
+cd apps/backend/
+mvn spring-boot:run
+```
+**Start the Frontend Server**
+```bash
+cd apps/frontend
+yarn install
+yarn dev
+```
 
-   ```bash
-   cd apps/backend/
-   mvn spring-boot:run
-   ```
-
-2. Start the Frontend Server:
-   ```bash
-   cd apps/frontend
-   yarn install
-   yarn dev
-   ```
-
-The current version required my own certificate and username and password for EMQX MQTT Broker, you need to configure the path for your own credentials.
+Configure your own certificate, username, and password for the EMQX MQTT Broker by setting the credential paths.
 
 ## EMQX Cloud MQTT Broker
 
+Cost comparison for 10 messages per second, 24/7 for 30 days:
 
+**AWS IoT Core**
+- Messaging: $1 per 1M messages → 25.92M ≈ $25.92/month
+- Connection minutes: 43,200 per device → ~$0.0035/month (negligible)
+- Total: ~$25.92/month
 
-## 🚀 Deployment (Backend)
+**EMQX Cloud (Serverless Free Tier)**
+- Session minutes: 43,200/month → within 1M free tier → $0
+- Traffic: 1 KB/message → 24.7 GB/month
+- Free tier includes 1 GB → ~23.7 GB extra
+- Extra traffic cost: 23.7 × $0.15 ≈ $3.56/month
+- Total: ~$3.56/month
 
-CampusRide uses **two separate CloudFormation stacks** for deployment:  
+Choice: EMQX Cloud is used for lower cost. Download the certificate from the EMQX portal and configure authentication and authorization.
 
-### Step 1 - Manually Configure VPC Subnet & Public IP
+## Deployment (Backend)
 
-First on the AWS portal, I manually configure the VPC and subnet, and make sure their network ACL permit all the ports. Then, assign an elastic ip so that we have fixed ip address so frontend websocket can have a stable connection for backend server.
+### 1. Base Infrastructure Deployment (Manual)
 
-### Step 2 - Manually deploy Backend Cloudformation Stack
-The backend deploys:
-- Deploy EC2 Instance (t3.micro) in designated vpc and subnet
-- Secutity Group
-- Associate the Elastic IP to EC2 Instance
-- Configure Route 53 record that point campusride.herman-tang.com to the Elastic IP
+**Purpose:** Provision and configure the persistent backend resources.
 
-Because the backend infrastructure (EC2 + Route 53) will not change, I manually deploy the stack on AWS portal.
+**Steps:**
+1. **Prepare Networking**
+   - Create VPC and subnet.
+   - Allocate an Elastic IP (EIP).
 
-The CloudFormation template is:  
-- apps/infrastructure/infrastructure.yml
+2. **Launch EC2 Instance**
+   - Instance type: `t3.micro`
+   - Place it in the target VPC/subnet.
+   - Create and attach a security group.
 
-Deployment is automated via GitHub Actions:  
-- Workflow: **`.github/workflows/deploy-backend.yml`**
-- Trigger:  
-  - Push changes to `main` affecting `apps/backend/` or `infrastructure-backend.yml`
-  - Manual dispatch
+3. **DNS Configuration**
+   - Associate the EIP with the EC2 instance.
+   - Create a Route 53 record mapping `campusride.herman-tang.com` to the EIP.
 
-**What it does:**  
-1. Deploys/updates CloudFormation stack `CampusRide-Backend`
+4. **Server Configuration (Manual)**
+   - Securely copy SSL certificates to the EC2 instance.
+   - Store AWS keys and EMQX MQTT credentials in GitHub for CI/CD workflows.
+   - Set up Nginx with SSL for `api.campusride.herman-tang.com`.
+   - Configure Nginx to forward HTTPS (443) requests to HTTP (8080) on the Spring Boot backend.
 
-### Step 3 - Prepare credentials and Nginx Reverse proxy for backend
-scp the certificate file to EC2 instance and store the aws key and MQTT username and password in github repo secret store.
-Then configure the nginx reverse proxy that accept https 443 websocket from frontend and redirect to http 8080 for spring boot backend
+**CloudFormation Template:**  
+`apps/infrastructure/infrastructure-backend.yml`
 
-### Step 4 - CI/CD flow for backend
-automte the maven build and copy the built jar to backend
+> This base infrastructure is deployed manually since it rarely changes.
 
-## Frontend
+---
 
-### Step 3 - CI/CD flow Cloudformation Stack - Frontend
-The frontend deploys:
-- S3 bucket (hosting the SPA)  
-- CloudFront distribution (with Route53 and ACM SSL cert)  
-- Websocket connection -> campusride.herman-tang.com (Route 53 Record) -> EC2 Public IP -> EC2 Nginx Reverse Proxy -> EC2 Sprint Boot Backend
+### 2. Backend Application Deployment (CI/CD)
 
-The CloudFormation template is:  
-- apps/infrastructure/infrastructure-frontend.yml
+**Workflow:** `.github/workflows/deploy-backend.yml`  
+**Trigger Conditions:**
+- Push to `main` affecting files in `apps/backend/`
 
-Deployment is automated via GitHub Actions:  
-- Workflow: **`.github/workflows/deploy-frontend.yml`**
-- Trigger:  
-  - Push changes to `main` affecting `apps/frontend/` or `infrastructure-frontend.yml`
-  - Manual dispatch
+**Automated Process:**
+1. Build the Spring Boot application.
+2. Copy the generated JAR file to the EC2 instance.
+3. Run the JAR as a system service to ensure it restarts automatically if the instance reboots.
 
-**What it does:**  
-1. Builds React frontend using `yarn build`  
-2. Deploys/updates CloudFormation stack `CampusRide-Frontend`  
-3. Uploads built files to the S3 bucket  
-4. Invalidates CloudFront cache to serve new files immediately  
+---
 
-### 3️⃣ API URL (Frontend ↔ Backend)
-- Frontend code uses `VITE_API_URL` environment variable  
-- During production build, it’s overridden to `""` so CloudFront automatically forwards API requests to the backend
+## Deploy Frontend
 
+### CI access with GitHub OIDC and AWS STS
 
-## 🔐 CI access with GitHub OIDC + AWS STS (no long‑lived secrets)
+The Frontend CI/CD uses GitHub OpenID Connect (OIDC) to let workflows obtain temporary AWS credentials from AWS STS.
 
-This repository uses **GitHub OpenID Connect (OIDC)** to let workflows obtain **temporary AWS credentials** from **AWS STS**.  
 Benefits:
-- **No stored AWS secrets** in GitHub  
-- **Short‑lived** credentials (automatically expire)  
-- Trust restricted to specific **repository** and **branch** (least privilege)
+- No stored AWS secrets in GitHub
+- Short-lived credentials
+- Trust restricted to specific repository and branch
 
-### How it works (high level)
-1. The workflow requests an **OIDC token** from GitHub for the job (`permissions: id-token: write`).  
-2. The action `aws-actions/configure-aws-credentials@v4` sends that token to **AWS STS** with **AssumeRoleWithWebIdentity**.  
-3. STS returns **temporary credentials** for the IAM role that trusts the GitHub OIDC provider.  
-4. Subsequent AWS CLI/SDK calls in the job use those temporary creds.
+### CI/CD Frontend CloudFormation Stack Deployment
+Frontend deployment:
+- S3 bucket (SPA hosting)
+- CloudFront distribution (with Route 53 + ACM SSL cert)
+- WebSocket: campusride.herman-tang.com → EC2 public IP → Nginx → Spring Boot
 
-## MQTT Broker Handling
+Template: apps/infrastructure/infrastructure-frontend.yml
 
-This 
-  
+CI/CD: GitHub Actions workflow .github/workflows/deploy-frontend.yml triggers on:
+- Push to main affecting apps/frontend/ or infrastructure-frontend.yml
+- Manual dispatch
+
+Process:
+1. Build React frontend (yarn build)
+2. Deploy/update CampusRide-Frontend stack
+3. Upload build to S3
+4. Invalidate CloudFront cache
+
+API URL:
+- Frontend uses VITE_API_URL. In production, it is set to an empty string so CloudFront forwards API requests to the backend.
+
