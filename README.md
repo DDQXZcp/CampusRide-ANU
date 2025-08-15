@@ -116,35 +116,67 @@ Choice: EMQX Cloud is used for lower cost. Download the certificate from the EMQ
 
 ---
 
-## Deploy Frontend
+## Deployment (Frontend)
 
-### CI access with GitHub OIDC and AWS STS
+The frontend is deployed via an automated CI/CD pipeline using GitHub Actions and CloudFormation.
 
-The Frontend CI/CD uses GitHub OpenID Connect (OIDC) to let workflows obtain temporary AWS credentials from AWS STS.
+---
 
-Benefits:
-- No stored AWS secrets in GitHub
-- Short-lived credentials
-- Trust restricted to specific repository and branch
+### 1. CI Access with GitHub OIDC and AWS STS
 
-### CI/CD Frontend CloudFormation Stack Deployment
-Frontend deployment:
-- S3 bucket (SPA hosting)
-- CloudFront distribution (with Route 53 + ACM SSL cert)
-- WebSocket: campusride.herman-tang.com → EC2 public IP → Nginx → Spring Boot
+**Purpose:** Securely provide AWS access to CI workflows without storing long-lived credentials.
 
-Template: apps/infrastructure/infrastructure-frontend.yml
+**Implementation:**
+- The pipeline uses **GitHub OpenID Connect (OIDC)** to obtain **temporary AWS credentials** from **AWS STS**.
+- Permissions are restricted to the specific repository and branch.
 
-CI/CD: GitHub Actions workflow .github/workflows/deploy-frontend.yml triggers on:
-- Push to main affecting apps/frontend/ or infrastructure-frontend.yml
+**Benefits:**
+- No AWS secrets stored in GitHub
+- Short-lived, automatically expiring credentials
+- Enforced least privilege through scoped trust policies
+
+---
+
+### 2. Frontend Infrastructure Deployment (CI/CD)
+
+**Resources Provisioned:**
+- **S3 Bucket** for hosting the Single Page Application (SPA)
+- **CloudFront Distribution** with Route 53 DNS and ACM SSL certificate
+- **WebSocket Route**: `api.campusride.herman-tang.com` → EC2 public IP → Nginx → Spring Boot backend
+
+**CloudFormation Template:**  
+`apps/infrastructure/infrastructure-frontend.yml`
+
+**Workflow:** `.github/workflows/deploy-frontend.yml`  
+**Triggers:**
+- Push to `main` affecting files in `apps/frontend/`
+- Push to `main` affecting `infrastructure-frontend.yml`
 - Manual dispatch
 
-Process:
-1. Build React frontend (yarn build)
-2. Deploy/update CampusRide-Frontend stack
-3. Upload build to S3
-4. Invalidate CloudFront cache
+---
 
-API URL:
-- Frontend uses VITE_API_URL. In production, it is set to an empty string so CloudFront forwards API requests to the backend.
+### 3. Automated Deployment Process
+
+1. Build the React frontend using `yarn build`
+2. Deploy or update the `CampusRide-Frontend` CloudFormation stack
+3. Upload the build artifacts to the S3 bucket
+4. Invalidate the CloudFront cache to serve the latest files immediately
+
+---
+
+## Estimated Monthly Cost (Sydney, ap-southeast-2, 1 msg/sec)
+
+**Assumptions**
+- EMQX Cloud Serverless Free Tier (1M session minutes + 1 GB traffic free)
+- One device connected continuously (~43,200 session minutes/month)
+- Message size ≈ 1 KB
+- EC2 t3.micro (On-Demand, ap-southeast-2)
+- Elastic IP associated with a running EC2 instance (no additional cost)
+
+**Monthly Usage**
+- Messages: ~2,592,000/month (~2.47 GB traffic)
+- EMQX: 1 GB free → 1.47 GB billable → 1.47 × $0.15 ≈ **$0.22**
+- EC2 t3.micro: $0.0136/hr × 730 ≈ **$9.93**
+
+**Total ≈ $10.15/month**
 
