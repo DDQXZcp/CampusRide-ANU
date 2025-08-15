@@ -1,12 +1,10 @@
 # ANU Graduation Requirement Checker Dashboard
 
-[GradTrack Website](https://gradtrack.herman-tang.com)
+[CampusRide Website](https://campusride.herman-tang.com)
 
-GradTrack is designed for ANU students to plan their course arrangements against degree graduation requirements. It provides a visual way to check whether their current study plan allows them to graduate on time.
+CampusRide is an IoT Dashboard for real-time visualization of scooter management. It 
 
-Since some courses are only offered in Semester 1 or Semester 2, and some may not be available in a given year, failing to plan ahead could delay graduation. Unexpected issues, such as failing a course, may also require students to re-plan their degree.
-
-![Architecture](./apps/frontend/public/images/GradTrack-ANU-Architecture.png)
+![Architecture](./apps/frontend/public/images/CampusRide-IoT-Dashboard-Architecture.svg)
 
 ## Overview
 
@@ -20,11 +18,18 @@ Frontend
 - S3 + Cloudfront (with ACM Certificates)
 
 Backend
-- .Net (C#)
-- DynamoDB
-- Docker + Lambda
+- Spring Boot
+- Nginx Reverse Proxy
+- EMQX Cloud
+- AWS EC2
 
-![Semester Planner Frontend](./apps/frontend/public/images/Planner.png)
+MQTT Broker
+- EMQX Cloud
+
+End Device
+- Raspberry Pi + GPS Module + Speed Encoder
+
+![Semester Planner Frontend](./apps/frontend/public/images/CampusRide-Frontend.png)
 
 ## Local Installation
 
@@ -32,15 +37,14 @@ Backend
 
 To get started with frontend, ensure you have the following prerequisites installed and set up:
 
-- Node.js 18.x or later (recommended to use Node.js 20.x or later)
-
-To get started with backend, install .Net from the official website.
+- JDK 17
+- Maven
 
 1. Start the Backend Server:
 
    ```bash
-   cd apps/backend/GraduationPlannerApi
-   dotnet run
+   cd apps/backend/
+   mvn spring-boot:run
    ```
 
 2. Start the Frontend Server:
@@ -50,80 +54,31 @@ To get started with backend, install .Net from the official website.
    yarn dev
    ```
 
-## 📝 Uploading Course Data to DynamoDB (Manual Setup)
+The current version required my own certificate and username and password for EMQX MQTT Broker, you need to configure the path for your own credentials.
 
-Before using the app, you may want to populate the DynamoDB table with course data. Here's how to do it manually:
+## EMQX Cloud MQTT Broker
 
-### Step 1: Ensure Your Backend Is Running
 
-Make sure you have the backend project running:
 
-```bash
-dotnet run --project apps/backend/GraduationPlannerApi
-```
+## 🚀 Deployment (Backend)
 
-> This assumes you're using a monorepo setup with the backend under `apps/backend`.
+CampusRide uses **two separate CloudFormation stacks** for deployment:  
 
----
+### Step 1 - Manually Configure VPC Subnet & Public IP
 
-### Step 2: Prepare Your Data
+First on the AWS portal, I manually configure the VPC and subnet, and make sure their network ACL permit all the ports. Then, assign an elastic ip so that we have fixed ip address so frontend websocket can have a stable connection for backend server.
 
-Ensure the `semester_courses.json` file is placed in the `GraduationPlannerApi` root folder. This file should contain a list of course objects structured like this:
-
-```json
-[
-  {
-    "CourseCode": "COMP1234",
-    "Name": "Example Course",
-    "Availability": "S1 Only",
-    "Prerequisites": ["COMP1000"],
-    "IsLevel8": false,
-    "Credit": 6
-  }
-]
-```
-
----
-
-### Step 3: Trigger the Upload Endpoint
-
-Send a POST request to the upload endpoint:
-
-```
-POST http://localhost:5157/api/upload/courses
-```
-
-You can do this via:
-- Postman
-- `curl`:
-  ```bash
-  curl -X POST http://localhost:5157/api/upload/courses
-  ```
-
-If successful, you will get:
-
-```
-Courses uploaded successfully.
-```
-
-> This endpoint calls `BulkUploadCoursesAsync()` which reads the JSON file and saves each course entry into DynamoDB.
-
-## 🚀 Deployment (Frontend & Backend)
-
-GradTrack uses **two separate CloudFormation stacks** for deployment:  
-1. **Backend stack** (`Herman-GradTrack-Backend`)  
-2. **Frontend stack** (`Herman-GradTrack-Frontend`)  
-
-### 1️⃣ Backend Stack
+### Step 2 - Manually deploy Backend Cloudformation Stack
 The backend deploys:
-- Lambda (Docker container)  
-- API Gateway (HTTP API)  
-- DynamoDB tables (`Courses`, `GraduationRequirements`)  
-- IAM roles/policies  
+- Deploy EC2 Instance (t3.micro) in designated vpc and subnet
+- Secutity Group
+- Associate the Elastic IP to EC2 Instance
+- Configure Route 53 record that point campusride.herman-tang.com to the Elastic IP
+
+Because the backend infrastructure (EC2 + Route 53) will not change, I manually deploy the stack on AWS portal.
 
 The CloudFormation template is:  
 - apps/infrastructure/infrastructure.yml
-
 
 Deployment is automated via GitHub Actions:  
 - Workflow: **`.github/workflows/deploy-backend.yml`**
@@ -132,15 +87,22 @@ Deployment is automated via GitHub Actions:
   - Manual dispatch
 
 **What it does:**  
-1. Builds and pushes Lambda Docker image to Amazon ECR  
-2. Deploys/updates CloudFormation stack `Herman-GradTrack-Backend`  
-3. Retains DynamoDB data (using `DeletionPolicy: Retain`)  
+1. Deploys/updates CloudFormation stack `CampusRide-Backend`
 
-### 2️⃣ Frontend Stack
+### Step 3 - Prepare credentials and Nginx Reverse proxy for backend
+scp the certificate file to EC2 instance and store the aws key and MQTT username and password in github repo secret store.
+Then configure the nginx reverse proxy that accept https 443 websocket from frontend and redirect to http 8080 for spring boot backend
+
+### Step 4 - CI/CD flow for backend
+automte the maven build and copy the built jar to backend
+
+## Frontend
+
+### Step 3 - CI/CD flow Cloudformation Stack - Frontend
 The frontend deploys:
 - S3 bucket (hosting the SPA)  
 - CloudFront distribution (with Route53 and ACM SSL cert)  
-- Automatic API forwarding (all `/api/*` calls → API Gateway from backend stack)
+- Websocket connection -> campusride.herman-tang.com (Route 53 Record) -> EC2 Public IP -> EC2 Nginx Reverse Proxy -> EC2 Sprint Boot Backend
 
 The CloudFormation template is:  
 - apps/infrastructure/infrastructure-frontend.yml
@@ -152,8 +114,8 @@ Deployment is automated via GitHub Actions:
   - Manual dispatch
 
 **What it does:**  
-1. Builds React frontend using `vite build`  
-2. Deploys/updates CloudFormation stack `Herman-GradTrack-Frontend`  
+1. Builds React frontend using `yarn build`  
+2. Deploys/updates CloudFormation stack `CampusRide-Frontend`  
 3. Uploads built files to the S3 bucket  
 4. Invalidates CloudFront cache to serve new files immediately  
 
@@ -161,24 +123,7 @@ Deployment is automated via GitHub Actions:
 - Frontend code uses `VITE_API_URL` environment variable  
 - During production build, it’s overridden to `""` so CloudFront automatically forwards API requests to the backend
 
----
 
-### 🔧 Manual Deployment (optional)
-
-If you want to manually deploy (not via GitHub Actions):  
-```bash
-# Backend
-aws cloudformation deploy \
-  --stack-name Herman-GradTrack-Backend \
-  --template-file apps/infrastructure/infrastructure.yml \
-  --capabilities CAPABILITY_NAMED_IAM
-
-# Frontend
-aws cloudformation deploy \
-  --stack-name Herman-GradTrack-Frontend \
-  --template-file apps/infrastructure/infrastructure-frontend.yml \
-  --capabilities CAPABILITY_NAMED_IAM
-```
 ## 🔐 CI access with GitHub OIDC + AWS STS (no long‑lived secrets)
 
 This repository uses **GitHub OpenID Connect (OIDC)** to let workflows obtain **temporary AWS credentials** from **AWS STS**.  
@@ -192,4 +137,8 @@ Benefits:
 2. The action `aws-actions/configure-aws-credentials@v4` sends that token to **AWS STS** with **AssumeRoleWithWebIdentity**.  
 3. STS returns **temporary credentials** for the IAM role that trusts the GitHub OIDC provider.  
 4. Subsequent AWS CLI/SDK calls in the job use those temporary creds.
+
+## MQTT Broker Handling
+
+This 
   
