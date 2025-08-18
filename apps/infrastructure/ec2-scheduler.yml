@@ -65,9 +65,19 @@ Resources:
           Id: StopEC2
           Input: '{"action":"stop"}'
 
-  PermissionForEventsToInvokeLambda:
+  PermissionForStartRule:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref StartEC2Lambda
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
+      SourceArn: !GetAtt StartRule.Arn
+
+  PermissionForStopRule:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StartEC2Lambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt StopRule.Arn
+
