@@ -46,6 +46,24 @@ scooters = [
     {
         "id": 5, "name": "Scooter 5", "status": "Maintenance",
         "lat": -35.2772, "lng": 149.1220, "battery": 3
+    },
+    {
+        "id": 6, "name": "Scooter 6", "status": "Running",
+        "start": [-35.2755, 149.1248], "end": [-35.2772, 149.1233],
+        "battery_range": (70, 80), "progress": 0.0, "forward": True
+    },
+    {
+        "id": 7, "name": "Scooter 7", "status": "Running",
+        "start": [-35.2788, 149.1219], "end": [-35.2804, 149.1207],
+        "battery_range": (50, 60), "progress": 0.0, "forward": True
+    },
+    {
+        "id": 9, "name": "Scooter 9", "status": "Locked",
+        "lat": -35.2766, "lng": 149.1165, "battery": 34
+    },
+    {
+        "id": 10, "name": "Scooter 10", "status": "Maintenance",
+        "lat": -35.2772, "lng": 149.1220, "battery": 5
     }
 ]
 
