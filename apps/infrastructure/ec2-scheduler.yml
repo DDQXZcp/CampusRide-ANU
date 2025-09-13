@@ -91,7 +91,7 @@ Resources:
   StartRule:
     Type: AWS::Events::Rule
     Properties:
-      ScheduleExpression: 'cron(0 22 ? * MON-FRI *)'
+      ScheduleExpression: 'cron(0 22 ? * SUN-THU *)'
       State: ENABLED
       Targets:
         - Arn: !GetAtt StartEC2Lambda.Arn
